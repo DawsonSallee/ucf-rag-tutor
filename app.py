@@ -11,30 +11,6 @@ from src import document_processor, vector_store_manager, rag_chain_builder, con
 st.set_page_config(page_title="ME Course Companion", layout="wide")
 
 # --- Helper Functions ---
-
-@st.cache_resource
-def load_and_build_chains_for_subject(_subject_name, _gemini_api_key):
-    """
-    Loads a vector store and builds all AI chains for a given subject and API key.
-    This function is cached by Streamlit. The underscores in the arguments (_subject_name, 
-    _gemini_api_key) are a convention to show they are used as cache keys.
-    """
-    if not _subject_name or not _gemini_api_key:
-        return None, None, None, None
-
-    # Load the specific vector store using the user's key for the embedding model
-    vs = vector_store_manager.create_or_load_subject_vector_store(_subject_name, _gemini_api_key)
-    
-    if vs:
-        # If the store exists, build all AI chains using it and the user's key
-        rag_qa_chain = rag_chain_builder.create_rag_qa_chain(vs, _gemini_api_key)
-        summarization_chain = rag_chain_builder.create_summarization_chain(vs, _gemini_api_key)
-        quiz_generation_chain = rag_chain_builder.create_quiz_chain(vs, _gemini_api_key)
-        return vs, rag_qa_chain, summarization_chain, quiz_generation_chain
-    else:
-        # Return nothing if no database exists for this subject
-        return None, None, None, None
-    
 def initialize_session_state():
     """Initializes Streamlit session state variables."""
 
@@ -66,34 +42,106 @@ def initialize_session_state():
     if "quiz_output" not in st.session_state: # Used for Quiz
         st.session_state.quiz_output = ""
 
+def load_subject_data(subject_name):
+    """Loads vector store and ALL RAG chains for the selected subject."""
+    if not st.session_state.get("GEMINI_API_KEY"):
+        st.error("Please enter your Google AI API Key in the sidebar to load a subject.")
+        return
+
+    if subject_name:
+        # Only reset history if the subject is actually changing
+        if st.session_state.get('current_subject') != subject_name:
+            st.session_state.chat_history = []
+            st.session_state.summary_output = ""
+            st.session_state.quiz_output = ""
+
+        st.session_state.current_subject = subject_name
+        with st.spinner(f"Loading data and building chains for {subject_name}..."):
+            vs = vector_store_manager.create_or_load_subject_vector_store(subject_name, st.session_state.GEMINI_API_KEY)
+            st.session_state.vector_store = vs
+            if vs:
+                api_key = st.session_state.GEMINI_API_KEY
+                st.session_state.rag_qa_chain = rag_chain_builder.create_rag_qa_chain(vs, api_key)
+                st.session_state.summarization_chain = rag_chain_builder.create_summarization_chain(vs, api_key)
+                st.session_state.quiz_generation_chain = rag_chain_builder.create_quiz_chain(vs, api_key)
+                st.success(f"Switched to subject: {subject_name}. All modes are ready.")
+            else:
+                st.session_state.rag_qa_chain = None
+                st.session_state.summarization_chain = None
+                st.session_state.quiz_generation_chain = None
+                st.warning(f"No vector store found for {subject_name}. Please upload documents.")
+    else: # subject_name is None
+        st.session_state.current_subject = None
+        st.session_state.vector_store = None
+        st.session_state.rag_qa_chain = None
+        st.session_state.summarization_chain = None
+        st.session_state.quiz_generation_chain = None
+        st.session_state.chat_history = []
+        st.session_state.summary_output = ""
+        st.session_state.quiz_output = ""
+
+def handle_pdf_upload(uploaded_files, subject_name):
+    """Processes uploaded PDF files for the given subject."""
+    if not subject_name:
+        st.error("Please select or add a subject first!")
+        return
+    if uploaded_files:
+        files_processed_successfully = False
+        for uploaded_file in uploaded_files:
+            file_path = os.path.join(config.UPLOAD_DIRECTORY, uploaded_file.name)
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+
+            with st.spinner(f"Processing {uploaded_file.name} for {subject_name}..."):
+                try:
+                    docs = document_processor.load_pdf(file_path)
+                    split_docs = document_processor.split_documents(docs)
+                    
+                    # <<< MODIFY THIS LINE >>>
+                    vector_store_manager.create_or_load_subject_vector_store(
+                        subject_name,
+                        st.session_state.GEMINI_API_KEY, # Pass the key here
+                        docs_to_add=split_docs
+                    )
+                    st.success(f"Processed and added {uploaded_file.name} to {subject_name}.")
+                    files_processed_successfully = True
+                except Exception as e:
+                    st.error(f"Error processing {uploaded_file.name}: {e}")
+                finally:
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+
+        if files_processed_successfully:
+            # Reload data and rebuild all chains for the current subject as its VS has changed
+            load_subject_data(subject_name)
+            # Refresh subject list in case a new subject's VS was just created
+            st.session_state.subjects = vector_store_manager.list_available_subjects()
+            st.rerun() # Rerun to reflect updated chains and subject list
+
+
 # --- Main App Logic ---
 initialize_session_state()
 
 # --- Sidebar for Subject Management ---
-# <<< REPLACE YOUR ENTIRE 'with st.sidebar:' BLOCK WITH THIS >>>
 with st.sidebar:
     st.header("📚 Course Companion")
+
+    # --- NEW: API Key Input Section ---
     st.subheader("API Configuration")
 
-    # Get API key from user
+    # Use a password field to hide the user's key
     user_gemini_key = st.text_input(
-        "Enter your Google AI API Key:", type="password", help="Your key is only used for this session."
+        "Enter your Google AI API Key:", 
+        type="password", 
+        key="gemini_api_key_input"
     )
 
-    # Logic to handle a new or updated API key
-    if user_gemini_key and st.session_state.get("GEMINI_API_KEY") != user_gemini_key:
-        # A new key was entered. This is our trigger for a "new instance".
-        # We clear the resource cache to force all AI chains to be rebuilt.
-        st.cache_resource.clear()
-        # We also reset the chat history for the new user.
-        st.session_state.chat_history = []
+    # Store the entered key in session state
+    if user_gemini_key:
         st.session_state.GEMINI_API_KEY = user_gemini_key
-        st.success("API Key accepted. App has been reset for the new key.")
-        st.rerun() # Rerun to apply changes immediately
-    elif user_gemini_key:
-        # If the key is the same, just make sure it's stored
-        st.session_state.GEMINI_API_KEY = user_gemini_key
+        st.success("API Key saved for this session.")
 
+    # Expander with instructions on how to get a key
     with st.expander("How to get an API Key"):
         st.markdown("""
         1. Go to the [Google AI for Developers](https://aistudio.google.com/app/apikey) website.
@@ -101,90 +149,91 @@ with st.sidebar:
         3. Click on the **"Create API key in new project"** button.
         4. Your new API key will be generated. Copy the key and paste it into the input box above.
         """)
+    st.markdown("---") # Visual separator
+    # --- END OF NEW SECTION ---
 
-    st.markdown("---")
     st.subheader("Subject Management")
 
-    subjects = vector_store_manager.list_available_subjects()
-    new_subject_name = st.text_input("Add New Subject")
-    if st.button("Add") and new_subject_name.strip():
-        if new_subject_name.strip() not in subjects:
-            subjects.append(new_subject_name.strip())
-            subjects.sort()
-            # No DB is created yet, just updating the list for the UI
-    
-    st.selectbox(
-        "Select Subject", 
-        options=subjects, 
-        key="current_subject" # This directly binds the dropdown's selection to our session state
-    )
-    
-    st.markdown("---")
-    st.subheader(f"Documents for: {st.session_state.current_subject or '...'}")
-    
-    uploaded_files = st.file_uploader("Upload PDF(s)", type="pdf", accept_multiple_files=True)
-    if st.button("Process Uploaded PDF(s)"):
-        if uploaded_files and st.session_state.current_subject and st.session_state.GEMINI_API_KEY:
-            # When new files are processed, we must clear the cache so the chains are rebuilt
-            load_and_build_chains_for_subject.clear()
-            
-            with st.spinner("Processing documents..."):
-                for uploaded_file in uploaded_files:
-                    # Simplified upload handling
-                    file_path = os.path.join(config.UPLOAD_DIRECTORY, uploaded_file.name)
-                    with open(file_path, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
-                    
-                    try:
-                        docs = document_processor.load_pdf(file_path)
-                        split_docs = document_processor.split_documents(docs)
-                        vector_store_manager.create_or_load_subject_vector_store(
-                            st.session_state.current_subject, st.session_state.GEMINI_API_KEY, docs_to_add=split_docs
-                        )
-                    except Exception as e:
-                        st.error(f"Error processing {uploaded_file.name}: {e}")
-                    finally:
-                        if os.path.exists(file_path):
-                            os.remove(file_path)
-            st.success("Documents processed successfully. Reloading...")
-            st.rerun()
+    new_subject_name = st.text_input("Enter New Subject Name", key="new_subject_input")
+    if st.button("Add Subject", key="add_subject_btn"):
+        if new_subject_name:
+            normalized_new_subject = new_subject_name.strip()
+            if normalized_new_subject and normalized_new_subject not in st.session_state.subjects:
+                st.session_state.subjects.append(normalized_new_subject)
+                st.session_state.subjects = sorted(list(set(st.session_state.subjects)))
+                st.success(f"Subject '{normalized_new_subject}' added. Select it and upload documents.")
+                st.rerun()
+            elif not normalized_new_subject:
+                 st.warning("Subject name cannot be empty.")
+            else:
+                st.warning(f"Subject '{normalized_new_subject}' already exists or is invalid.")
         else:
-            st.warning("Please select a subject, provide an API key, and upload a file.")
+            st.warning("Subject name cannot be empty.")
+
+    if st.session_state.subjects:
+        # The on_change callback is a great way to handle subject switching
+        selected_subject_from_box = st.selectbox(
+            "Select Subject",
+            options=st.session_state.subjects,
+            index=st.session_state.subjects.index(st.session_state.current_subject) if st.session_state.current_subject in st.session_state.subjects else 0,
+            key="subject_selector",
+            on_change=lambda: load_subject_data(st.session_state.subject_selector)
+        )
+        
+        # Initial load if no subject is current but subjects list is not empty
+        if st.session_state.current_subject is None and st.session_state.subjects:
+             load_subject_data(st.session_state.subjects[0])
+             st.rerun()
+
+        st.markdown("---")
+        st.subheader(f"Documents for: {st.session_state.current_subject or 'No Subject Selected'}")
+        uploaded_files = st.file_uploader(
+            "Upload PDF(s) to selected subject",
+            type="pdf",
+            accept_multiple_files=True,
+            # Unique key helps reset the uploader widget when the subject changes
+            key=f"pdf_uploader_{st.session_state.current_subject or 'nosubject'}"
+        )
+        if st.button(f"Process Uploaded PDF(s) for {st.session_state.current_subject or ''}", key="process_pdfs_btn"):
+            if uploaded_files and st.session_state.current_subject:
+                handle_pdf_upload(uploaded_files, st.session_state.current_subject)
+            elif not st.session_state.current_subject:
+                st.warning("Please select a subject first.")
+            else:
+                st.warning("No files uploaded.")
+        # Your delete logic is also fine
+        # ... (keep your delete button logic here) ...
 
 
 # --- CHANGE START 4: Implement main area with mode switcher ---
-st.title("📚 ME Course Companion")
-
-# 1. Main Gatekeeping Logic
 if not st.session_state.get("GEMINI_API_KEY"):
+    st.title("📚 ME Course Companion")
     st.info("Welcome! Please enter your Google AI API Key in the sidebar to begin.")
-elif not st.session_state.get("current_subject"):
-    st.info("API Key accepted. Now, please add or select a subject from the sidebar to get started.")
+elif not st.session_state.current_subject:
+    st.title("📚 ME Course Companion")
+    st.info("API Key accepted. Now, please select or add a subject from the sidebar to get started.")
+elif not st.session_state.vector_store:
+    st.title(f"📚 ME Course Companion: {st.session_state.current_subject}")
+    st.info(f"No documents processed yet for '{st.session_state.current_subject}'. Please upload and process PDFs for this subject to enable the different modes.")
 else:
-    # 2. Call the cached function to get the necessary objects for the current state.
-    # This will be instant if the chains have already been built for this subject/key.
-    with st.spinner(f"Loading resources for {st.session_state.current_subject}..."):
-        vector_store, rag_qa_chain, summarization_chain, quiz_generation_chain = load_and_build_chains_for_subject(
-            st.session_state.current_subject,
-            st.session_state.GEMINI_API_KEY
-        )
+    # This block runs ONLY when an API key is present, a subject is selected, and it has data.
+    st.title(f"📚 ME Course Companion: {st.session_state.current_subject}")
 
-    # 3. Check if the subject has processed documents yet
-    if not vector_store:
-        st.warning(f"No documents have been processed for '{st.session_state.current_subject}'. Please upload a PDF for this subject in the sidebar.")
-    else:
-        # 4. If everything is ready, display the main app interface
-        st.markdown(f"### Current Subject: {st.session_state.current_subject}")
-        st.markdown("---")
-        
-        chain_options = ["Q&A", "Summarize Subject", "Generate Quiz"]
-        st.radio(
-            "Select Mode:",
-            options=chain_options,
-            key="active_chain_type",
-            horizontal=True
-        )
-        st.markdown("---")
+    # ---- MODE SELECTION RADIO BUTTONS ----
+    st.markdown("---")
+    chain_options = ["Q&A", "Summarize Subject", "Generate Quiz"]
+    selected_chain_type = st.radio(
+         "Select Mode:",
+         options=chain_options,
+         index=chain_options.index(st.session_state.active_chain_type),
+         horizontal=True, # Makes radio buttons appear side-by-side
+    )
+
+    if selected_chain_type != st.session_state.active_chain_type:
+        st.session_state.active_chain_type = selected_chain_type
+        st.rerun() # Rerun to refresh the UI for the new mode
+
+    st.markdown("---")
 
     # --- Q&A Mode ---
     if st.session_state.active_chain_type == "Q&A":
