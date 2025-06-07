@@ -9,6 +9,10 @@ st.set_page_config(page_title="ME Course Companion", layout="wide")
 # --- Helper Functions ---
 def initialize_session_state():
     """Initializes Streamlit session state variables."""
+
+    if "GEMINI_API_KEY" not in st.session_state:
+        st.session_state.GEMINI_API_KEY = None
+    
     if "subjects" not in st.session_state:
         st.session_state.subjects = vector_store_manager.list_available_subjects()
     if "current_subject" not in st.session_state:
@@ -36,6 +40,10 @@ def initialize_session_state():
 
 def load_subject_data(subject_name):
     """Loads vector store and ALL RAG chains for the selected subject."""
+    if not st.session_state.get("GEMINI_API_KEY"):
+        st.error("Please enter your Google AI API Key in the sidebar to load a subject.")
+        return
+
     if subject_name:
         # Only reset history if the subject is actually changing
         if st.session_state.get('current_subject') != subject_name:
@@ -48,9 +56,10 @@ def load_subject_data(subject_name):
             vs = vector_store_manager.create_or_load_subject_vector_store(subject_name)
             st.session_state.vector_store = vs
             if vs:
-                st.session_state.rag_qa_chain = rag_chain_builder.create_rag_qa_chain(vs)
-                st.session_state.summarization_chain = rag_chain_builder.create_summarization_chain(vs)
-                st.session_state.quiz_generation_chain = rag_chain_builder.create_quiz_chain(vs)
+                api_key = st.session_state.GEMINI_API_KEY
+                st.session_state.rag_qa_chain = rag_chain_builder.create_rag_qa_chain(vs, api_key)
+                st.session_state.summarization_chain = rag_chain_builder.create_summarization_chain(vs, api_key)
+                st.session_state.quiz_generation_chain = rag_chain_builder.create_quiz_chain(vs, api_key)
                 st.success(f"Switched to subject: {subject_name}. All modes are ready.")
             else:
                 st.session_state.rag_qa_chain = None
@@ -107,6 +116,33 @@ initialize_session_state()
 # --- Sidebar for Subject Management ---
 with st.sidebar:
     st.header("📚 Course Companion")
+
+    # --- NEW: API Key Input Section ---
+    st.subheader("API Configuration")
+
+    # Use a password field to hide the user's key
+    user_gemini_key = st.text_input(
+        "Enter your Google AI API Key:", 
+        type="password", 
+        key="gemini_api_key_input"
+    )
+
+    # Store the entered key in session state
+    if user_gemini_key:
+        st.session_state.GEMINI_API_KEY = user_gemini_key
+        st.success("API Key saved for this session.")
+
+    # Expander with instructions on how to get a key
+    with st.expander("How to get an API Key"):
+        st.markdown("""
+        1. Go to the [Google AI for Developers](https://aistudio.google.com/app/apikey) website.
+        2. Sign in with your Google account.
+        3. Click on the **"Create API key in new project"** button.
+        4. Your new API key will be generated. Copy the key and paste it into the input box above.
+        """)
+    st.markdown("---") # Visual separator
+    # --- END OF NEW SECTION ---
+
     st.subheader("Subject Management")
 
     new_subject_name = st.text_input("Enter New Subject Name", key="new_subject_input")
@@ -161,14 +197,17 @@ with st.sidebar:
 
 
 # --- CHANGE START 4: Implement main area with mode switcher ---
-if not st.session_state.current_subject:
+if not st.session_state.get("GEMINI_API_KEY"):
     st.title("📚 ME Course Companion")
-    st.info("Welcome! Select or add a subject from the sidebar to get started.")
+    st.info("Welcome! Please enter your Google AI API Key in the sidebar to begin.")
+elif not st.session_state.current_subject:
+    st.title("📚 ME Course Companion")
+    st.info("API Key accepted. Now, please select or add a subject from the sidebar to get started.")
 elif not st.session_state.vector_store:
     st.title(f"📚 ME Course Companion: {st.session_state.current_subject}")
     st.info(f"No documents processed yet for '{st.session_state.current_subject}'. Please upload and process PDFs for this subject to enable the different modes.")
 else:
-    # This block runs when a subject is loaded and has data
+    # This block runs ONLY when an API key is present, a subject is selected, and it has data.
     st.title(f"📚 ME Course Companion: {st.session_state.current_subject}")
 
     # ---- MODE SELECTION RADIO BUTTONS ----

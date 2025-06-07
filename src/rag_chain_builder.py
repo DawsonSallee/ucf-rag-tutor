@@ -12,14 +12,17 @@ from src import config
 
 # --- SHARED HELPER FUNCTIONS ---
 
-def get_llm():
-    """Initializes and returns the Gemini LLM."""
-    if not config.GEMINI_API_KEY:
-        raise ValueError("CRITICAL: GEMINI_API_KEY not found in config. Cannot initialize LLM.")
+def get_llm(gemini_api_key: str):
+    """Initializes and returns the Gemini LLM using a provided API key."""
+    # CHANGE THIS CHECK
+    if not gemini_api_key:
+        raise ValueError("CRITICAL: A valid Gemini API Key must be provided.")
+
     try:
         llm = ChatGoogleGenerativeAI(
             model="gemini-1.5-flash-latest",
-            google_api_key=config.GEMINI_API_KEY,
+            # CHANGE THIS LINE
+            google_api_key=gemini_api_key,
             temperature=0.2
         )
         return llm
@@ -33,9 +36,9 @@ def format_docs(docs):
 
 # --- CHAIN CREATION FUNCTIONS ---
 
-def create_rag_qa_chain(vector_store):
+def create_rag_qa_chain(vector_store, gemini_api_key: str):
     """Creates a RAG chain for question-answering."""
-    llm = get_llm()
+    llm = get_llm(gemini_api_key) 
     retriever = vector_store.as_retriever()
 
     rag_prompt_template = """You are an expert Mechanical Engineering Professor and a world-class technical writer. Your goal is to provide a comprehensive, in-depth, and pedagogical answer to the student's question, using the provided context as your primary source.
@@ -82,11 +85,11 @@ def create_rag_qa_chain(vector_store):
 
     return rag_chain_with_source # Returns dict with 'question', 'context' (docs), 'answer'
 
-def create_summarization_chain(vector_store):
+def create_summarization_chain(vector_store, gemini_api_key: str):
     """
     Creates a RAG chain for generating a comprehensive, multi-part summary using a simple retriever.
     """
-    llm = get_llm()
+    llm = get_llm(gemini_api_key) 
 
     retriever = vector_store.as_retriever(search_kwargs={"k": 5})
 
@@ -122,12 +125,12 @@ def create_summarization_chain(vector_store):
     )
     return summarization_chain
 
-def create_quiz_chain(vector_store):
+def create_quiz_chain(vector_store, gemini_api_key: str):
     """
     Creates a chain for generating a quiz with cited sources from the vector store.
     The chain returns a dictionary with 'quiz_text' and 'context_docs'.
     """
-    llm = get_llm()
+    llm = get_llm(gemini_api_key) 
     retriever = vector_store.as_retriever()
     quiz_prompt_template = """You are an expert engineering professor creating a quiz.
     Use the following research notes to generate {num_questions} multiple-choice questions. Your goal is to create a helpful study tool, even if the notes are slightly imperfect.
