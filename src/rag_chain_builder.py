@@ -138,7 +138,6 @@ def create_quiz_chain(vector_store, gemini_api_key: str):
     **CRITICAL RULES:**
     1.  Prioritize creating questions from any substantive technical concepts, equations, or definitions you can find in the notes.
     2.  The text of the question (the 'Q:' line) MUST NOT contain the words "Source", "note", "context", or "document".
-    3.  **Only if the notes are completely indecipherable or contain absolutely no technical content** (e.g., only chapter titles or page numbers), then you MUST respond with only one sentence: "The retrieved context is not suitable for generating a quiz on this topic. Please try a more specific topic."
 
     If the notes are suitable, format each question EXACTLY as follows:
     Q: [Question text]
