@@ -9,23 +9,22 @@ def get_subject_db_path(subject_name: str) -> str:
     sanitized_subject_name = "".join(c if c.isalnum() else "_" for c in subject_name.lower())
     return os.path.join(config.BASE_VECTOR_DB_PATH, f"subject_{sanitized_subject_name}_db")
 
-def create_or_load_subject_vector_store(subject_name: str, docs_to_add=None, embeddings_model=None):
+def create_or_load_subject_vector_store(subject_name: str, gemini_api_key: str, docs_to_add=None, embeddings_model=None):
     """
     Creates a new vector store for a subject or loads an existing one.
     Adds documents if provided.
     Returns the Chroma vector store object.
     """
     if embeddings_model is None:
-        # First, it's good practice to check if config.GEMINI_API_KEY actually has a value
-        if not config.GEMINI_API_KEY:
-            # This stops the program if the key isn't loaded, preventing further errors.
-            # You could also print an error and return None, or handle it differently.
-            raise ValueError("CRITICAL: GEMINI_API_KEY not found in config. Cannot create embeddings model.")
+        # 1. CHANGE THIS CHECK: It now checks the key passed into the function
+        if not gemini_api_key:
+            raise ValueError("CRITICAL: A Gemini API Key must be provided to create the embeddings model.")
         
+        # 2. CHANGE THIS LINE: Use the provided key
         embeddings_model = GoogleGenerativeAIEmbeddings(
             model="models/embedding-001",
             task_type="retrieval_document",
-            google_api_key=config.GEMINI_API_KEY  # <<< THIS IS THE ADDED/MODIFIED PART
+            google_api_key=gemini_api_key
         )
         
     subject_db_path = get_subject_db_path(subject_name)

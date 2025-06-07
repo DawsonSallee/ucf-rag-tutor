@@ -53,7 +53,7 @@ def load_subject_data(subject_name):
 
         st.session_state.current_subject = subject_name
         with st.spinner(f"Loading data and building chains for {subject_name}..."):
-            vs = vector_store_manager.create_or_load_subject_vector_store(subject_name)
+            vs = vector_store_manager.create_or_load_subject_vector_store(subject_name, st.session_state.GEMINI_API_KEY)
             st.session_state.vector_store = vs
             if vs:
                 api_key = st.session_state.GEMINI_API_KEY
@@ -92,8 +92,13 @@ def handle_pdf_upload(uploaded_files, subject_name):
                 try:
                     docs = document_processor.load_pdf(file_path)
                     split_docs = document_processor.split_documents(docs)
-                    # This will create/load and add docs, then persist
-                    vector_store_manager.create_or_load_subject_vector_store(subject_name, docs_to_add=split_docs)
+                    
+                    # <<< MODIFY THIS LINE >>>
+                    vector_store_manager.create_or_load_subject_vector_store(
+                        subject_name,
+                        st.session_state.GEMINI_API_KEY, # Pass the key here
+                        docs_to_add=split_docs
+                    )
                     st.success(f"Processed and added {uploaded_file.name} to {subject_name}.")
                     files_processed_successfully = True
                 except Exception as e:
