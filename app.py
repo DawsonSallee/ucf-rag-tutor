@@ -1,3 +1,4 @@
+import base64 
 try:
     __import__('pysqlite3')
     import sys
@@ -12,7 +13,7 @@ import re
 from src import document_processor, vector_store_manager, rag_chain_builder, config # Your backend modules
 
 # --- Page Configuration ---
-st.set_page_config(page_title="ME Course Companion", layout="wide")
+st.set_page_config(page_title="AI Course Companion", layout="wide")
 
 # --- Helper Functions ---
 def initialize_session_state():
@@ -128,8 +129,9 @@ initialize_session_state()
 
 # --- Sidebar for Subject Management ---
 with st.sidebar:
-    st.header("📚 Course Companion")
-
+    st.title("🔑 Access Panel")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
     # --- NEW: API Key Input Section ---
     st.subheader("API Configuration")
 
@@ -211,17 +213,41 @@ with st.sidebar:
 
 # --- CHANGE START 4: Implement main area with mode switcher ---
 if not st.session_state.get("GEMINI_API_KEY"):
-    st.title("📚 ME Course Companion")
+    st.title("✨ AI Course Companion")
     st.info("Welcome! Please enter your Google AI API Key in the sidebar to begin.")
+    st.subheader("Demo:")
+    
+    # --- VIDEO EMBED ---
+    # Read the video file from the assets folder
+    try:
+        video_file = open("assets/feature_demo.mp4", "rb")
+        video_bytes = video_file.read()
+        # Encode the video in base64
+        video_base64 = base64.b64encode(video_bytes).decode()
+        
+        # Create the HTML string for the video
+        video_html = f"""
+            <video autoplay loop muted playsinline style="width: 100%; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+              <source src="data:video/mp4;base64,{video_base64}" type="video/mp4">
+              Your browser does not support the video tag.
+            </video>
+            """
+        # Display the video
+        st.markdown(video_html, unsafe_allow_html=True)
+
+    except FileNotFoundError:
+        st.info("Welcome! Please enter your Google AI API Key in the sidebar to begin.")
+        st.warning("Could not load feature demo video. Make sure 'assets/feature_demo.mp4' exists.")
+        
 elif not st.session_state.current_subject:
-    st.title("📚 ME Course Companion")
+    st.title("✨ AI Course Companion")
     st.info("API Key accepted. Now, please select or add a subject from the sidebar to get started.")
 elif not st.session_state.vector_store:
-    st.title(f"📚 ME Course Companion: {st.session_state.current_subject}")
+    st.title(f"✨ AI Course Companion: {st.session_state.current_subject}")
     st.info(f"No documents processed yet for '{st.session_state.current_subject}'. Please upload and process PDFs for this subject to enable the different modes.")
 else:
     # This block runs ONLY when an API key is present, a subject is selected, and it has data.
-    st.title(f"📚 ME Course Companion: {st.session_state.current_subject}")
+    st.title(f"✨ AI Course Companion: {st.session_state.current_subject}")
 
     # ---- MODE SELECTION RADIO BUTTONS ----
     st.markdown("---")
