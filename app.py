@@ -215,11 +215,11 @@ with st.sidebar:
 if not st.session_state.get("GEMINI_API_KEY"):
     st.title("✨ AI Course Companion")
     st.info("Welcome! Please enter your Google AI API Key in the sidebar to begin.")
-    st.subheader("Demo:")
     
     # --- VIDEO EMBED ---
     # Read the video file from the assets folder
     try:
+        st.subheader("Demo:")
         video_file = open("assets/feature_demo.mp4", "rb")
         video_bytes = video_file.read()
         # Encode the video in base64
@@ -236,7 +236,6 @@ if not st.session_state.get("GEMINI_API_KEY"):
         st.markdown(video_html, unsafe_allow_html=True)
 
     except FileNotFoundError:
-        st.info("Welcome! Please enter your Google AI API Key in the sidebar to begin.")
         st.warning("Could not load feature demo video. Make sure 'assets/feature_demo.mp4' exists.")
         
 elif not st.session_state.current_subject:
