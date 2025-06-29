@@ -15,9 +15,7 @@ The application allows a user to:
 
 This project is designed to be run locally, showcasing a complete full-stack Python application. The following short, animated GIF demonstrates the application's core workflow: creating a subject, uploading a PDF, and asking the AI a specific question based on the document's content.
 
-![Live Application Demo](./docs/images/me_course_companion_demo.gif)
-*(Note: This is a placeholder for your demo GIF. Creating this is a key final step!)*
-
+![Live Application Demo](./assets/feature_demo.gif)
 ---
 
 ## 🏛️ Architectural Philosophy & Design
@@ -28,8 +26,7 @@ This application was architected with three core principles in mind: **Modularit
 
 The diagram below illustrates the application's data pipeline, showing how a user's question is grounded in specific, relevant information before being answered by the AI.
 
-![Logical Application Architecture](./docs/images/companion_architecture.png)
-*(Note: A placeholder for your architecture diagram.)*
+![Logical Application Architecture](./assets/companion_architecture.png)
 
 ---
 
@@ -62,8 +59,6 @@ The application is built with a focus on user experience, using a modern Python 
 ---
 
 ## 🧠 Learning Journey & Skill Demonstration
-
-This project was a primary vehicle for achieving the goals outlined in my **[AI/ML Engineer Grind](https://www.notion.so/AI-ML-Engineer-Grind-1ebf6074eb8a80e981fdef36631e70ad?pvs=21)**. It directly proves the following key competencies:
 
 -   **From Theory to Practice:** This project is tangible proof of my ability to take theoretical AI concepts (RAG, LLMs, prompt engineering) and implement them in a real, working application.
 -   **Full-Stack Python Proficiency:** It demonstrates the ability to build a complete, end-to-end application using only the Python ecosystem—from backend logic and data processing to a polished, interactive frontend.
