@@ -88,7 +88,7 @@ This repository contains all the code needed to run the application locally. To 
 
 1.  **Clone the Repository:**
     ```bash
-    git clone https://github.com/your-username/me-course-companion
+    git clone https://github.com/DawsonSallee/me-course-companion
     cd me-course-companion
     ```
 2.  **Create and Activate a Virtual Environment:**
