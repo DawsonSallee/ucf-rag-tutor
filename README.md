@@ -5,20 +5,20 @@ Welcome to the repository for my AI-Powered Course Companion, a project conceive
 This project was built to demonstrate a deep, practical understanding of modern AI development workflows, from data ingestion and vector storage to advanced LLM orchestration with multi-step chains.
 
 The application allows a user to:
-1.  **📚 Create & Manage Subjects:** Organize learning materials into distinct, isolated subjects (e.g., "Thermodynamics," "Fluid Mechanics").
-2.  **🧠 Ingest Knowledge:** Upload personal PDF documents (notes, textbook chapters) into a specific subject, where they are processed and stored for retrieval.
-3.  **💬 Get Personalized Tutoring:** Interact with a conversational AI that can answer questions, summarize complex topics, and even generate quizzes based *exclusively* on the provided documents.
+1.  **Create & Manage Subjects:** Organize learning materials into distinct, isolated subjects (e.g., "Thermodynamics," "Fluid Mechanics").
+2.  **Ingest Knowledge:** Upload personal PDF documents (notes, textbook chapters) into a specific subject, where they are processed and stored for retrieval.
+3.  **Get Personalized Tutoring:** Interact with a conversational AI that can answer questions, summarize complex topics, and even generate quizzes based *exclusively* on the provided documents.
 
 ---
 
-## 🚀 Live Application & Video Demonstration
+## Live Application & Video Demonstration
 
 This project is designed to be run locally, showcasing a complete full-stack Python application. The following short, animated GIF demonstrates the application's core workflow: creating a subject, uploading a PDF, and asking the AI a specific question based on the document's content.
 
 ![Live Application Demo](./assets/feature_demo.gif)
 ---
 
-## 🏛️ Architectural Philosophy & Design
+## Architectural Philosophy & Design
 
 This application was architected with three core principles in mind: **Modularity, Data-Centric Design, and User Experience.** It employs a self-contained, full-stack Python architecture where a user-friendly frontend built with Streamlit interacts with a robust backend logic system powered by LangChain. This design ensures a clean separation of concerns and a seamless flow of data from raw documents to intelligent insights.
 
@@ -30,7 +30,7 @@ The diagram below illustrates the application's data pipeline, showing how a use
 
 ---
 
-## 💡 Key Features & Technical Decisions
+## Key Features & Technical Decisions
 
 This project is a demonstration of solving a practical problem—mastering technical information—with a modern AI engineering stack.
 
@@ -58,7 +58,7 @@ The application is built with a focus on user experience, using a modern Python 
 
 ---
 
-## 🧠 Learning Journey & Skill Demonstration
+## Learning Journey & Skill Demonstration
 
 -   **From Theory to Practice:** This project is tangible proof of my ability to take theoretical AI concepts (RAG, LLMs, prompt engineering) and implement them in a real, working application.
 -   **Full-Stack Python Proficiency:** It demonstrates the ability to build a complete, end-to-end application using only the Python ecosystem—from backend logic and data processing to a polished, interactive frontend.
@@ -67,7 +67,7 @@ The application is built with a focus on user experience, using a modern Python 
 
 ---
 
-## 💻 Technology Stack
+## Technology Stack
 
 This project leverages a modern, Python-centric technology stack to deliver a complete AI-powered learning tool.
 
@@ -82,7 +82,7 @@ This project leverages a modern, Python-centric technology stack to deliver a co
 
 ---
 
-## ⚙️ Local Development Setup
+## Local Development Setup
 
 This repository contains all the code needed to run the application locally. To get started, you will need **Python 3.11+**.
 
